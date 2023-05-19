@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::env;
 use std::sync::{Arc, Mutex};
 
-use api::gpu_prover;
+//use api::gpu_prover;
 use futures::{channel::mpsc, executor::block_on, future, SinkExt, StreamExt};
 use local_ip_address::local_ip;
 use prover_service::run_prover::run_prover_with_remote_synthesizer;
@@ -21,9 +21,9 @@ use zksync_dal::ConnectionPool;
 use crate::artifact_provider::ProverArtifactProvider;
 use crate::prover::ProverReporter;
 use crate::prover_params::ProverParams;
-use zksync_prover_utils::region_fetcher::get_region;
 use crate::socket_listener::incoming_socket_listener;
 use crate::synthesized_circuit_provider::SynthesizedCircuitProvider;
+use zksync_prover_utils::region_fetcher::get_region;
 
 mod artifact_provider;
 mod prover;
@@ -51,49 +51,47 @@ fn graceful_shutdown() {
     let pool = ConnectionPool::new(Some(1), true);
     let host = local_ip().expect("Failed obtaining local IP address");
     let port = ProverConfigs::from_env().non_gpu.assembly_receiver_port;
-    let address = SocketAddress {
-        host,
-        port,
-    };
+    let address = SocketAddress { host, port };
     pool.clone()
         .access_storage_blocking()
         .gpu_prover_queue_dal()
         .update_prover_instance_status(address, GpuProverInstanceStatus::Dead, 0);
 }
 
-fn get_ram_per_gpu() -> u64 {
-    let device_info = gpu_prover::cuda_bindings::device_info(0).unwrap();
-    let ram_in_gb: u64 = device_info.total / (1024 * 1024 * 1024);
-    vlog::info!("Detected RAM per GPU: {:?} GB", ram_in_gb);
-    ram_in_gb
-}
+// fn get_ram_per_gpu() -> u64 {
+//     let device_info = gpu_prover::cuda_bindings::device_info(0).unwrap();
+//     let ram_in_gb: u64 = device_info.total / (1024 * 1024 * 1024);
+//     vlog::info!("Detected RAM per GPU: {:?} GB", ram_in_gb);
+//     ram_in_gb
+// }
 
 fn get_prover_config_for_machine_type() -> ProverConfig {
     let prover_configs = ProverConfigs::from_env();
-    let actual_num_gpus = gpu_prover::cuda_bindings::devices().unwrap() as usize;
-    vlog::info!("detected number of gpus: {}", actual_num_gpus);
-    let ram_in_gb = get_ram_per_gpu();
+    prover_configs.non_gpu
+    // let actual_num_gpus = gpu_prover::cuda_bindings::devices().unwrap() as usize;
+    // vlog::info!("detected number of gpus: {}", actual_num_gpus);
+    // let ram_in_gb = get_ram_per_gpu();
 
-    match actual_num_gpus {
-        1 => {
-            vlog::info!("Detected machine type with 1 GPU and 80GB RAM");
-            prover_configs.one_gpu_eighty_gb_mem
-        }
-        2 => {
-            if ram_in_gb > 39 {
-                vlog::info!("Detected machine type with 2 GPU and 80GB RAM");
-                prover_configs.two_gpu_eighty_gb_mem
-            } else {
-                vlog::info!("Detected machine type with 2 GPU and 40GB RAM");
-                prover_configs.two_gpu_forty_gb_mem
-            }
-        }
-        4 => {
-            vlog::info!("Detected machine type with 4 GPU and 80GB RAM");
-            prover_configs.four_gpu_eighty_gb_mem
-        }
-        _ => panic!("actual_num_gpus: {} not supported yet", actual_num_gpus),
-    }
+    // match actual_num_gpus {
+    //     1 => {
+    //         vlog::info!("Detected machine type with 1 GPU and 80GB RAM");
+    //         prover_configs.one_gpu_eighty_gb_mem
+    //     }
+    //     2 => {
+    //         if ram_in_gb > 39 {
+    //             vlog::info!("Detected machine type with 2 GPU and 80GB RAM");
+    //             prover_configs.two_gpu_eighty_gb_mem
+    //         } else {
+    //             vlog::info!("Detected machine type with 2 GPU and 40GB RAM");
+    //             prover_configs.two_gpu_forty_gb_mem
+    //         }
+    //     }
+    //     4 => {
+    //         vlog::info!("Detected machine type with 4 GPU and 80GB RAM");
+    //         prover_configs.four_gpu_eighty_gb_mem
+    //     }
+    //     _ => panic!("actual_num_gpus: {} not supported yet", actual_num_gpus),
+    // }
 }
 
 #[tokio::main]
@@ -148,7 +146,12 @@ async fn main() {
     let circuit_ids = ProverGroupConfig::from_env()
         .get_circuit_ids_for_group_id(prover_config.specialized_prover_group_id);
 
-    vlog::info!("Starting proof generation for circuits: {:?} in region: {} with group-id: {}", circuit_ids, region, prover_config.specialized_prover_group_id);
+    vlog::info!(
+        "Starting proof generation for circuits: {:?} in region: {} with group-id: {}",
+        circuit_ids,
+        region,
+        prover_config.specialized_prover_group_id
+    );
     let mut tasks: Vec<JoinHandle<()>> = vec![];
 
     tasks.push(prometheus_exporter::run_prometheus_exporter(
@@ -179,7 +182,7 @@ async fn main() {
         producer,
         ConnectionPool::new(Some(1), true),
         prover_config.specialized_prover_group_id,
-        region
+        region,
     )));
 
     let artifact_provider = ProverArtifactProvider {};
