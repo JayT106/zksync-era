@@ -27,6 +27,7 @@ use crate::fri_prover_dal::FriProverDal;
 use crate::fri_scheduler_dependency_tracker_dal::FriSchedulerDependencyTrackerDal;
 use crate::fri_witness_generator_dal::FriWitnessGeneratorDal;
 use crate::gpu_prover_queue_dal::GpuProverQueueDal;
+use crate::oracle_dal::OracleDal;
 use crate::proof_generation_dal::ProofGenerationDal;
 use crate::protocol_versions_dal::ProtocolVersionsDal;
 use crate::protocol_versions_web3_dal::ProtocolVersionsWeb3Dal;
@@ -64,6 +65,7 @@ pub mod healthcheck;
 mod instrument;
 mod metrics;
 mod models;
+pub mod oracle_dal;
 pub mod proof_generation_dal;
 pub mod protocol_versions_dal;
 pub mod protocol_versions_web3_dal;
@@ -306,5 +308,9 @@ impl<'a> StorageProcessor<'a> {
 
     pub fn system_dal(&mut self) -> SystemDal<'_, 'a> {
         SystemDal { storage: self }
+    }
+
+    pub fn oracle_dal(&mut self) -> OracleDal<'_, 'a> {
+        OracleDal { storage: self }
     }
 }
