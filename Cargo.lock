@@ -8411,6 +8411,7 @@ dependencies = [
  "google-cloud-auth",
  "google-cloud-storage",
  "http",
+ "metrics",
  "tempdir",
  "tokio",
  "tracing",

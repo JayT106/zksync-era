@@ -51,7 +51,7 @@ impl AsyncS3Storage {
     ) -> Result<Vec<u8>, ObjectStoreError> {
         let started_at = Instant::now();
         let filename = Self::filename(bucket, key);
-        vlog::trace!(
+        tracing::trace!(
             "Fetching data from S3 for key {filename} from bucket {}",
             self.bucket_url
         );
@@ -64,7 +64,7 @@ impl AsyncS3Storage {
             .send()
             .await?;
 
-        vlog::trace!(
+        tracing::trace!(
             "Fetched data from S3 for key {filename} from bucket {} and it took: {:?}",
             self.bucket_url,
             started_at.elapsed()
@@ -92,7 +92,7 @@ impl AsyncS3Storage {
     ) -> Result<(), ObjectStoreError> {
         let started_at = Instant::now();
         let filename = Self::filename(bucket, key);
-        vlog::trace!(
+        tracing::trace!(
             "Storing data to s3 for key {filename} from bucket {}",
             self.bucket_url
         );
@@ -108,9 +108,9 @@ impl AsyncS3Storage {
             .send()
             .await?;
 
-        vlog::trace!("PutObjectOutput {:?}", result);
+        tracing::trace!("PutObjectOutput {:?}", result);
 
-        vlog::trace!(
+        tracing::trace!(
             "Stored data to S3 for key {filename} from bucket {} and it took: {:?}",
             self.bucket_url,
             started_at.elapsed()
@@ -133,7 +133,7 @@ impl AsyncS3Storage {
         key: &str,
     ) -> impl Future<Output = Result<(), ObjectStoreError>> + '_ {
         let filename = Self::filename(bucket, key);
-        vlog::trace!(
+        tracing::trace!(
             "Removing data from S3 for key {filename} from bucket {}",
             self.bucket_url
         );
@@ -239,7 +239,12 @@ impl ObjectStore for S3Storage {
         Self::block_on(&self.handle, task)
     }
 
-    async fn put_raw(&self, bucket: Bucket, key: &str, value: Vec<u8>) -> Result<(), ObjectStoreError> {
+    async fn put_raw(
+        &self,
+        bucket: Bucket,
+        key: &str,
+        value: Vec<u8>,
+    ) -> Result<(), ObjectStoreError> {
         let task = self.inner.put_async(bucket.as_str(), key, value);
         Self::block_on(&self.handle, task)
     }
