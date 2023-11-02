@@ -240,11 +240,8 @@ impl ObjectStoreFactory {
             }
             ObjectStoreMode::S3 => {
                 tracing::trace!("Initialized S3 Object store");
-                Box::new(S3Storage::new(
-                    s3_endpoint_url,
-                    config.bucket_base_url.clone(),
-                    config.max_retries,
-                ))
+                let store = S3Storage::new(s3_endpoint_url, config.bucket_base_url.clone()).await;
+                Box::new(store)
             }
         }
     }
